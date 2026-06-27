@@ -1,0 +1,19 @@
+node_modules
+npm-debug.log*
+
+.next
+.git
+.gitignore
+
+# Generated client harus selalu dibuat ulang lewat `prisma generate` di
+# dalam image (lihat Dockerfile), bukan disalin dari host yang mungkin
+# berbeda versi Prisma/OS.
+src/generated
+
+.env
+.env.local
+.env*.local
+
+docs
+README.md
+*.md

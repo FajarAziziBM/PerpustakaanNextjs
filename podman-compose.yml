@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sipus-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sipus_db}
+      POSTGRES_USER: ${POSTGRES_USER:-sipus_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sipus_pass}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - sipus_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sipus_user} -d ${POSTGRES_DB:-sipus_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sipus-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sipus-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sipus_user}:${POSTGRES_PASSWORD:-sipus_pass}@db:5432/${POSTGRES_DB:-sipus_db}
+      AUTH_SECRET: ${AUTH_SECRET:-change_this_secret}
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    networks:
+      - sipus-network
+
+  # Tool opsional untuk inspeksi database via browser.
+  # Jalankan dengan: podman-compose --profile tools up -d
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: sipus-pgadmin
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@sipus.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - sipus-network
+    profiles:
+      - tools
+
+volumes:
+  sipus_db_data:
+    driver: local
+
+networks:
+  sipus-network:
+    driver: bridge

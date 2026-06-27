@@ -1,0 +1,174 @@
+// Prisma schema — Sistem Informasi Perpustakaan (SIPUS)
+//
+// Catatan penamaan: field & tabel sengaja mengikuti ERD/SQL asli (snake_case,
+// Bahasa Indonesia) agar mudah ditelusuri kembali ke dokumen ERD/PRD di awal
+// proyek. Ini berbeda dari konvensi Prisma yang umumnya camelCase — bisa
+// diubah kapan saja lewat `@map`/`@@map` tanpa perlu mengubah skema database.
+//
+// Penambahan dari ERD awal (lihat docs/architecture.md §4.2):
+//   - model `users`            -> kredensial & role terpusat (Admin/Petugas/Anggota)
+//   - model `pengaturan_denda` -> tarif denda konfigurabel oleh Admin (bukan hardcode)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Admin
+  Petugas
+  Anggota
+}
+
+enum JenisKelamin {
+  L
+  P
+}
+
+enum StatusAnggota {
+  Aktif
+  Nonaktif
+}
+
+enum StatusPeminjaman {
+  Dipinjam
+  Selesai
+}
+
+/// Kredensial login terpusat. petugas & anggota tetap menyimpan data profil;
+/// users khusus menangani username/password & role agar Anggota juga bisa login.
+model users {
+  id_user       Int       @id @default(autoincrement())
+  username      String    @unique
+  password_hash String
+  role          Role
+  id_petugas    Int?      @unique
+  id_anggota    Int?      @unique
+  last_login    DateTime?
+  created_at    DateTime  @default(now())
+
+  petugas petugas? @relation(fields: [id_petugas], references: [id_petugas])
+  anggota anggota? @relation(fields: [id_anggota], references: [id_anggota])
+}
+
+model petugas {
+  id_petugas Int      @id @default(autoincrement())
+  nama       String
+  no_hp      String?
+  created_at DateTime @default(now())
+
+  user       users?
+  peminjaman peminjaman[]
+}
+
+model anggota {
+  id_anggota     Int           @id @default(autoincrement())
+  nama           String
+  jenis_kelamin  JenisKelamin?
+  alamat         String?
+  no_hp          String?
+  email          String?       @unique
+  tanggal_daftar DateTime      @default(now())
+  status         StatusAnggota @default(Aktif)
+
+  user       users?
+  peminjaman peminjaman[]
+
+  @@index([nama])
+}
+
+model kategori {
+  id_kategori   Int    @id @default(autoincrement())
+  nama_kategori String @unique
+
+  buku buku[]
+}
+
+model penerbit {
+  id_penerbit   Int     @id @default(autoincrement())
+  nama_penerbit String
+  alamat        String?
+  telepon       String?
+
+  buku buku[]
+}
+
+model penulis {
+  id_penulis   Int    @id @default(autoincrement())
+  nama_penulis String
+
+  buku buku[]
+}
+
+model buku {
+  id_buku      Int      @id @default(autoincrement())
+  isbn         String   @unique
+  judul        String
+  tahun_terbit Int?
+  stok         Int      @default(0)
+  lokasi_rak   String?
+  id_kategori  Int?
+  id_penerbit  Int?
+  id_penulis   Int?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  kategori kategori? @relation(fields: [id_kategori], references: [id_kategori])
+  penerbit penerbit? @relation(fields: [id_penerbit], references: [id_penerbit])
+  penulis  penulis?  @relation(fields: [id_penulis], references: [id_penulis])
+
+  detail_peminjaman detail_peminjaman[]
+
+  @@index([judul])
+}
+
+model peminjaman {
+  id_peminjaman   Int              @id @default(autoincrement())
+  tanggal_pinjam  DateTime         @default(now())
+  tanggal_kembali DateTime
+  status          StatusPeminjaman @default(Dipinjam)
+  id_anggota      Int
+  id_petugas      Int
+  created_at      DateTime         @default(now())
+
+  anggota anggota @relation(fields: [id_anggota], references: [id_anggota])
+  petugas petugas @relation(fields: [id_petugas], references: [id_petugas])
+
+  detail       detail_peminjaman[]
+  pengembalian pengembalian?
+
+  @@index([status])
+}
+
+model detail_peminjaman {
+  id_detail     Int @id @default(autoincrement())
+  id_peminjaman Int
+  id_buku       Int
+  jumlah        Int @default(1)
+
+  peminjaman peminjaman @relation(fields: [id_peminjaman], references: [id_peminjaman], onDelete: Cascade)
+  buku       buku       @relation(fields: [id_buku], references: [id_buku])
+}
+
+model pengembalian {
+  id_pengembalian      Int      @id @default(autoincrement())
+  id_peminjaman        Int      @unique
+  tanggal_dikembalikan DateTime @default(now())
+  terlambat            Int      @default(0)
+  denda                Decimal  @default(0) @db.Decimal(10, 2)
+
+  peminjaman peminjaman @relation(fields: [id_peminjaman], references: [id_peminjaman])
+}
+
+/// Tarif denda per hari, dapat diubah Admin (PRD: hak akses "Mengatur Denda").
+/// Baris terbaru (berlaku_sejak terbesar) dianggap sebagai tarif yang aktif.
+model pengaturan_denda {
+  id_pengaturan  Int      @id @default(autoincrement())
+  tarif_per_hari Decimal  @db.Decimal(10, 2)
+  berlaku_sejak  DateTime @default(now())
+}
