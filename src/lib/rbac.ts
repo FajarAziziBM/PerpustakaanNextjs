@@ -15,4 +15,5 @@ export const ROLE_HOME: Record<Role, string> = {
 export const PROTECTED_ROUTES: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: "/dashboard", roles: ["Admin", "Petugas"] },
   { prefix: "/portal", roles: ["Anggota"] },
+  { prefix: "/api/laporan", roles: ["Admin"] },
 ];

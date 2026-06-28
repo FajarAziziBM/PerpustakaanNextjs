@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/anggota", label: "Anggota" },
   { href: "/dashboard/petugas", label: "Petugas", adminOnly: true },
   { href: "/dashboard/pengaturan-denda", label: "Pengaturan Denda", adminOnly: true },
+  { href: "/dashboard/laporan", label: "Laporan", adminOnly: true },
 ];
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
