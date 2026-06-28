@@ -2,35 +2,38 @@
 
 > Catatan: estimasi dan urutan bersifat indikatif, perlu disesuaikan dengan kapasitas tim aktual.
 
-## Fase 0 — Inisialisasi & Infrastruktur (Saat ini)
+## Fase 0 — Inisialisasi & Infrastruktur
 - [x] Penyusunan PRD & ERD
 - [x] Dokumentasi awal: `README.md`, `architecture.md`, `specification.md`, `roadmap.md`
-- [ ] Setup repository & `podman-compose.yml` (database + skeleton aplikasi)
-- [ ] Setup project Next.js + schema Prisma awal
-- [ ] Setup pemeriksaan dasar (lint, type-check)
+- [x] Setup repository & `podman-compose.yml` (database + skeleton aplikasi)
+- [x] Setup project Next.js + schema Prisma awal
+- [ ] Setup pemeriksaan dasar (lint, type-check otomatis di CI — `npm run typecheck` sudah ada, CI belum)
 
-## Fase 1 — MVP
+## Fase 1 — MVP (hampir selesai)
 Mengacu pada prioritas PRD bagian 11:
-1. Login & Hak Akses (Admin, Petugas, Anggota + RBAC)
-2. Dashboard (statistik dasar)
-3. Master Buku (CRUD, cari, filter)
-4. Master Anggota (CRUD, cetak kartu)
-5. Master Petugas (CRUD, khusus Admin)
-6. Master Kategori / Penulis / Penerbit
-7. Transaksi Peminjaman (dengan validasi stok)
-8. Transaksi Pengembalian
-9. Perhitungan Denda Otomatis
-10. Laporan dasar (PDF/Excel): Buku, Anggota, Peminjaman, Pengembalian, Denda
+1. [x] Login & Hak Akses (Admin, Petugas, Anggota + RBAC)
+2. [x] Dashboard (statistik dasar)
+3. [x] Master Buku — CRUD ✅, cari (judul/ISBN) ✅, **filter kategori/penerbit/stok belum ada**
+4. [x] Master Anggota — CRUD + cari ✅, **cetak kartu anggota belum ada**
+5. [x] Master Petugas (CRUD, khusus Admin)
+6. [x] Master Kategori / Penulis / Penerbit
+7. [x] Transaksi Peminjaman (multi-buku per transaksi, validasi stok di dalam DB transaction)
+8. [x] Transaksi Pengembalian
+9. [x] Perhitungan Denda Otomatis (+ halaman Pengaturan Denda untuk Admin)
+10. [x] Laporan PDF/Excel: Buku, Anggota, Peminjaman, Pengembalian, Denda
 
-**Target keluaran Fase 1:** sistem dapat dipakai untuk operasional harian perpustakaan secara end-to-end (peminjaman → pengembalian → denda → laporan).
+**Sisa pekerjaan sebelum Fase 1 benar-benar tuntas:** filter lanjutan katalog Buku, cetak kartu Anggota, dan cetak bukti transaksi Peminjaman/Pengembalian (disebut di PRD tapi belum diimplementasikan).
+
+**Target keluaran Fase 1:** sistem dapat dipakai untuk operasional harian perpustakaan secara end-to-end (peminjaman → pengembalian → denda → laporan). **Sudah tercapai secara fungsional.**
 
 ## Fase 2 — Penyempurnaan & Fitur Pendukung
 - Import/Export Excel untuk data Buku
 - Audit log (siapa melakukan apa, kapan)
 - Backup & restore database terjadwal
 - Grafik peminjaman pada dashboard
-- Pengaturan tarif denda melalui UI (bukan nilai hardcode)
+- [x] ~~Pengaturan tarif denda melalui UI~~ — sudah dikerjakan lebih awal di Fase 1 (`/dashboard/pengaturan-denda`), karena jadi prasyarat modul Pengembalian
 - Pencarian & filter lanjutan (multi-kriteria) pada katalog buku
+- Cetak kartu Anggota & cetak bukti transaksi Peminjaman/Pengembalian (PDF)
 
 ## Fase 3 — Pengembangan Lanjutan (Pasca Versi 1.0)
 - Notifikasi otomatis (email/WhatsApp) untuk jatuh tempo & denda

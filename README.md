@@ -33,7 +33,7 @@ Berdasarkan PRD, sistem ini mencakup:
 | Autentikasi | Custom (JWT via `jose` di cookie httpOnly + `bcryptjs`) — lihat alasan di `docs/architecture.md` §5 |
 | Styling/UI | Tailwind CSS v4 (CSS-first config) |
 | Container Runtime | Podman & Podman Compose |
-| Export Laporan | exceljs (Excel), pdf-lib / react-pdf (PDF) — akan ditambahkan saat Modul Laporan dikerjakan |
+| Export Laporan | exceljs (Excel), @react-pdf/renderer (PDF) |
 
 > Skeleton ini sudah diverifikasi: `npx tsc --noEmit` dan `npm run build` (Next.js 16.2.9 + Turbopack) berjalan tanpa error di lingkungan pengembangan.
 
@@ -148,17 +148,22 @@ Akun awal hasil seed: `admin` / `admin123` — **wajib diganti** setelah login p
 - [`docs/roadmap.md`](docs/roadmap.md) — Rencana pengembangan bertahap (MVP → lanjutan)
 
 ## Status Pengembangan
-🚧 **Fase 0 selesai** — skeleton Next.js, Prisma schema, autentikasi & RBAC dasar, serta Dockerfile sudah tersedia. CRUD modul (Buku, Anggota, Petugas, Peminjaman, Pengembalian, Laporan) belum diimplementasikan — lihat `docs/roadmap.md` Fase 1.
+✅ **Fase 1 (MVP) hampir tuntas** — seluruh modul inti PRD bagian 11 sudah berfungsi end-to-end: login/RBAC, master data, transaksi peminjaman & pengembalian, denda otomatis, dan laporan PDF/Excel. Sisa: filter lanjutan katalog Buku, cetak kartu Anggota, dan cetak bukti transaksi — lihat `docs/roadmap.md` Fase 1 untuk detail.
 
-## Yang Sudah Berfungsi di Skeleton Ini
+## Yang Sudah Berfungsi
 - Login & logout (Server Action + sesi JWT di cookie httpOnly)
-- RBAC dua lapis: pemeriksaan cepat di `src/proxy.ts` (pengganti `middleware.ts` di Next.js 16) + pemeriksaan otoritatif di setiap layout (`src/app/dashboard/layout.tsx`, `src/app/portal/layout.tsx`) — lihat alasan keamanannya di `docs/architecture.md` §5
+- RBAC dua lapis: pemeriksaan cepat di `src/proxy.ts` (pengganti `middleware.ts` di Next.js 16) + pemeriksaan otoritatif di setiap layout — lihat alasan keamanannya di `docs/architecture.md` §5
 - Dashboard Admin/Petugas dengan 5 statistik dasar (query langsung ke database)
 - Portal Anggota: profil & riwayat peminjaman terakhir
-- Skema Prisma lengkap (11 tabel sesuai ERD + `users` & `pengaturan_denda`)
-- Seed akun admin awal (`npm run db:seed`)
+- **Master data CRUD lengkap:** Buku (+ cari judul/ISBN), Kategori, Penulis, Penerbit, Anggota (+ cari nama/email), Petugas (khusus Admin, otomatis membuat akun login)
+- **Transaksi Peminjaman:** multi-buku per transaksi, validasi & potong stok di dalam satu DB transaction, batalkan transaksi (stok dikembalikan)
+- **Transaksi Pengembalian:** hitung keterlambatan & denda otomatis (dengan preview real-time), stok dikembalikan
+- **Pengaturan Denda:** Admin dapat mengubah tarif Rp/hari/buku kapan saja tanpa redeploy
+- **Laporan PDF & Excel:** Buku, Anggota, Peminjaman, Pengembalian, Denda — bisa difilter rentang tanggal untuk laporan transaksi (`/dashboard/laporan`)
+- Skema Prisma lengkap (11 tabel sesuai ERD + `users` & `pengaturan_denda`), migrasi awal sudah pernah dijalankan
+- Seed akun admin (`npm run db:seed`) & seed data dummy skala besar untuk testing (`npm run db:seed:faker`)
 
-Belum diimplementasikan (lihat `docs/roadmap.md` Fase 1 ke atas): CRUD Buku/Kategori/Penulis/Penerbit/Anggota/Petugas, transaksi Peminjaman & Pengembalian, perhitungan denda end-to-end, import/export Excel, dan Laporan PDF/Excel.
+Belum diimplementasikan (lihat `docs/roadmap.md` Fase 1 sisa & Fase 2): filter multi-kriteria katalog Buku, cetak kartu Anggota, cetak bukti transaksi, import/export Excel data Buku, audit log, backup terjadwal, dan grafik di dashboard.
 
 ## Lisensi
 Belum ditentukan — sesuaikan dengan kebutuhan institusi/organisasi pemilik proyek.
