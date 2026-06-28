@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   db:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     container_name: sipus-db
     restart: unless-stopped
     environment:
@@ -42,7 +42,7 @@ services:
   # Tool opsional untuk inspeksi database via browser.
   # Jalankan dengan: podman-compose --profile tools up -d
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: docker.io/dpage/pgadmin4:latest
     container_name: sipus-pgadmin
     restart: unless-stopped
     depends_on:
