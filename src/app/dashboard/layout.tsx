@@ -6,12 +6,15 @@ import { logoutAction } from "@/lib/actions/logout";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/peminjaman", label: "Peminjaman" },
+  { href: "/dashboard/pengembalian", label: "Pengembalian" },
   { href: "/dashboard/buku", label: "Buku" },
   { href: "/dashboard/kategori", label: "Kategori" },
   { href: "/dashboard/penulis", label: "Penulis" },
   { href: "/dashboard/penerbit", label: "Penerbit" },
   { href: "/dashboard/anggota", label: "Anggota" },
   { href: "/dashboard/petugas", label: "Petugas", adminOnly: true },
+  { href: "/dashboard/pengaturan-denda", label: "Pengaturan Denda", adminOnly: true },
 ];
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {

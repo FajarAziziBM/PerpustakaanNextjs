@@ -58,7 +58,15 @@ export function EntityForm({
       ))}
 
       {state.message && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
+        <p
+          className={
+            state.success
+              ? "rounded-md bg-green-50 px-3 py-2 text-sm text-green-700"
+              : "rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
+          }
+        >
+          {state.message}
+        </p>
       )}
 
       {fields.map((field) => {

@@ -1,0 +1,81 @@
+import { db } from "@/lib/db";
+
+const currency = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
+
+export default async function PengembalianPage() {
+  const items = await db.pengembalian.findMany({
+    include: {
+      peminjaman: {
+        include: { anggota: true, detail: { include: { buku: true } } },
+      },
+    },
+    orderBy: { tanggal_dikembalikan: "desc" },
+  });
+
+  const totalDenda = items.reduce((sum, item) => sum + Number(item.denda), 0);
+
+  return (
+    <div>
+      <div>
+        <h1 className="text-lg font-semibold text-slate-900">Riwayat Pengembalian</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {items.length} transaksi · Total denda tercatat: {currency.format(totalDenda)}
+        </p>
+      </div>
+
+      <div className="mt-4 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3">Anggota</th>
+              <th className="px-4 py-3">Buku</th>
+              <th className="px-4 py-3">Tgl Dikembalikan</th>
+              <th className="px-4 py-3">Terlambat</th>
+              <th className="px-4 py-3">Denda</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <tr key={item.id_pengembalian}>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  {item.peminjaman?.anggota?.nama ?? "-"}
+                </td>
+                <td className="px-4 py-3">
+                  {(item.peminjaman?.detail ?? [])
+                    .map((d) => `${d.buku?.judul ?? "?"} (${d.jumlah})`)
+                    .join(", ")}
+                </td>
+                <td className="px-4 py-3">
+                  {new Intl.DateTimeFormat("id-ID").format(item.tanggal_dikembalikan)}
+                </td>
+                <td className="px-4 py-3">
+                  {item.terlambat > 0 ? (
+                    <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                      {item.terlambat} hari
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                      Tepat waktu
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 font-medium text-slate-900">{currency.format(Number(item.denda))}</td>
+              </tr>
+            ))}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                  Belum ada riwayat pengembalian.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
