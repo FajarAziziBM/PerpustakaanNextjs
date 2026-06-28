@@ -57,6 +57,10 @@ async function main() {
   });
 
   const petugasList = await db.petugas.findMany();
+  if (petugasList.length === 0) {
+    throw new Error("Gagal membuat data petugas awal.");
+  }
+  const firstPetugas = petugasList[0]!;
 
   // =========================
   // ADMIN USER
@@ -70,7 +74,7 @@ async function main() {
       username: "admin",
       password_hash: adminHash,
       role: "Admin",
-      id_petugas: petugasList[0].id_petugas,
+      id_petugas: firstPetugas.id_petugas,
     },
   });
 
