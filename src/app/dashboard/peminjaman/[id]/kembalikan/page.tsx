@@ -17,10 +17,10 @@ export default async function KembalikanPage({ params }: PageProps) {
   const { id } = await params;
   const peminjaman = await db.peminjaman.findUnique({
     where: { id_peminjaman: Number(id) },
-    include: { anggota: true, detail: { include: { buku: true } } },
+    include: { anggota: true, detail: { include: { buku: true } }, pengembalian: true },
   });
 
-  if (!peminjaman || peminjaman.status !== "Dipinjam") {
+  if (!peminjaman || peminjaman.status !== "Dipinjam" || peminjaman.pengembalian) {
     notFound();
   }
 

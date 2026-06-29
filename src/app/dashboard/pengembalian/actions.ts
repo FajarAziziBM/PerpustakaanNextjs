@@ -20,11 +20,19 @@ export async function prosesPengembalianAction(
 
   const peminjaman = await db.peminjaman.findUnique({
     where: { id_peminjaman: idPeminjaman },
-    include: { detail: true },
+    include: { detail: true, pengembalian: true },
   });
 
-  if (!peminjaman || peminjaman.status !== "Dipinjam") {
-    return { message: "Transaksi peminjaman tidak ditemukan atau sudah selesai." };
+  if (!peminjaman) {
+    return { message: "Transaksi peminjaman tidak ditemukan." };
+  }
+
+  // Defense-in-depth: jangan hanya percaya field `status`. Jika baris
+  // pengembalian sudah ada (misalnya akibat data tidak konsisten, atau dua
+  // klik submit yang nyaris bersamaan), hentikan di sini dengan pesan yang
+  // jelas — bukan mencoba insert lagi dan menabrak unique constraint.
+  if (peminjaman.pengembalian || peminjaman.status !== "Dipinjam") {
+    return { message: "Transaksi ini sudah pernah diproses pengembaliannya sebelumnya." };
   }
 
   const detail = peminjaman.detail ?? [];
@@ -44,10 +52,16 @@ export async function prosesPengembalianAction(
         },
       });
 
-      await tx.peminjaman.update({
-        where: { id_peminjaman: idPeminjaman },
+      // Update bersyarat: hanya berhasil jika status masih "Dipinjam" saat ini
+      // benar-benar dieksekusi di database (bukan hanya saat findUnique tadi).
+      // Menutup celah race condition jika ada dua request berbarengan.
+      const updated = await tx.peminjaman.updateMany({
+        where: { id_peminjaman: idPeminjaman, status: "Dipinjam" },
         data: { status: "Selesai" },
       });
+      if (updated.count === 0) {
+        throw new Error("DUPLICATE_RETURN");
+      }
 
       for (const item of detail) {
         await tx.buku.update({
@@ -56,8 +70,15 @@ export async function prosesPengembalianAction(
         });
       }
     });
-  } catch {
-    return { message: "Gagal memproses pengembalian. Coba lagi." };
+  } catch (error) {
+    const isDuplicate =
+      (error instanceof Error && error.message === "DUPLICATE_RETURN") ||
+      (typeof error === "object" && error !== null && "code" in error && error.code === "P2002");
+    return {
+      message: isDuplicate
+        ? "Transaksi ini sudah pernah diproses pengembaliannya sebelumnya."
+        : "Gagal memproses pengembalian. Coba lagi.",
+    };
   }
 
   revalidatePath("/dashboard/peminjaman");

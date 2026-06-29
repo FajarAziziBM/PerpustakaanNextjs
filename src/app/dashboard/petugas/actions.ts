@@ -63,9 +63,22 @@ export async function updatePetugasAction(
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
-  const existing = await db.users.findUnique({ where: { username: parsed.data.username } });
-  if (existing && existing.id_petugas !== id) {
+  const existingUsername = await db.users.findUnique({ where: { username: parsed.data.username } });
+  if (existingUsername && existingUsername.id_petugas !== id) {
     return { errors: { username: ["Username sudah dipakai, gunakan username lain."] } };
+  }
+
+  // Petugas bisa saja belum punya akun login sama sekali (misalnya berasal dari
+  // data impor/seed yang dibuat langsung di tabel `petugas`). Dalam kasus itu kita
+  // perlu membuat akun barunya (upsert), dan password WAJIB diisi karena belum ada
+  // password_hash sebelumnya untuk dipertahankan.
+  const existingAccount = await db.users.findUnique({ where: { id_petugas: id } });
+  if (!existingAccount && !parsed.data.password) {
+    return {
+      errors: {
+        password: ["Petugas ini belum punya akun login — isi password untuk membuat akun baru."],
+      },
+    };
   }
 
   try {
@@ -75,12 +88,22 @@ export async function updatePetugasAction(
         data: { nama: parsed.data.nama, no_hp: parsed.data.no_hp },
       });
 
-      await tx.users.update({
+      const passwordHash = parsed.data.password ? await hashPassword(parsed.data.password) : undefined;
+
+      await tx.users.upsert({
         where: { id_petugas: id },
-        data: {
+        update: {
           username: parsed.data.username,
           role: parsed.data.role,
-          ...(parsed.data.password ? { password_hash: await hashPassword(parsed.data.password) } : {}),
+          ...(passwordHash ? { password_hash: passwordHash } : {}),
+        },
+        create: {
+          id_petugas: id,
+          username: parsed.data.username,
+          role: parsed.data.role,
+          // passwordHash dijamin terisi di sini karena validasi di atas mewajibkannya
+          // saat akun belum ada.
+          password_hash: passwordHash ?? (await hashPassword(crypto.randomUUID())),
         },
       });
     });
@@ -95,7 +118,10 @@ export async function updatePetugasAction(
 export async function deletePetugasAction(id: number): Promise<void> {
   try {
     await db.$transaction(async (tx) => {
-      await tx.users.delete({ where: { id_petugas: id } });
+      // deleteMany dipakai (bukan delete) karena petugas ini mungkin belum
+      // pernah punya akun di tabel users sama sekali — deleteMany tidak error
+      // walau tidak ada baris yang cocok (count: 0).
+      await tx.users.deleteMany({ where: { id_petugas: id } });
       await tx.petugas.delete({ where: { id_petugas: id } });
     });
   } catch {

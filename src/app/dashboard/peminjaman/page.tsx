@@ -4,7 +4,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { batalkanPeminjamanAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; error?: string }>;
 }
 
 const STATUS_TABS = [
@@ -14,7 +14,7 @@ const STATUS_TABS = [
 ];
 
 export default async function PeminjamanPage({ searchParams }: PageProps) {
-  const { status } = await searchParams;
+  const { status, error } = await searchParams;
   const activeStatus = status === "Selesai" || status === "semua" ? status : "Dipinjam";
 
   const items = await db.peminjaman.findMany({
@@ -31,6 +31,12 @@ export default async function PeminjamanPage({ searchParams }: PageProps) {
 
   return (
     <div>
+      {error === "batal-gagal" && (
+        <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          Transaksi tidak bisa dibatalkan — kemungkinan sudah pernah diproses pengembaliannya.
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Peminjaman</h1>

@@ -47,8 +47,13 @@ export async function createPeminjamanAction(
 
   try {
     await db.$transaction(async (tx) => {
+      const bukuList = await tx.buku.findMany({
+        where: { id_buku: { in: parsed.data.items.map((i) => i.id_buku) } },
+      });
+      const bukuMap = new Map(bukuList.map((b) => [b.id_buku, b]));
+
       for (const item of parsed.data.items) {
-        const buku = await tx.buku.findUnique({ where: { id_buku: item.id_buku } });
+        const buku = bukuMap.get(item.id_buku);
         if (!buku) {
           throw new Error("Salah satu buku yang dipilih tidak ditemukan.");
         }
@@ -71,10 +76,18 @@ export async function createPeminjamanAction(
         await tx.detail_peminjaman.create({
           data: { id_peminjaman: peminjaman.id_peminjaman, id_buku: item.id_buku, jumlah: item.jumlah },
         });
-        await tx.buku.update({
-          where: { id_buku: item.id_buku },
+
+        // Decrement ATOMIK & BERSYARAT (stok >= jumlah dicek ulang oleh DB saat ini
+        // juga, bukan hanya hasil baca di atas) — menutup celah race condition bila
+        // ada dua transaksi peminjaman berebut buku yang sama secara bersamaan.
+        const updated = await tx.buku.updateMany({
+          where: { id_buku: item.id_buku, stok: { gte: item.jumlah } },
           data: { stok: { decrement: item.jumlah } },
         });
+        if (updated.count === 0) {
+          const buku = bukuMap.get(item.id_buku);
+          throw new Error(`Stok "${buku?.judul ?? "buku"}" tidak cukup saat transaksi diproses.`);
+        }
       }
     });
   } catch (error) {
@@ -88,20 +101,30 @@ export async function createPeminjamanAction(
 }
 
 /**
- * Membatalkan peminjaman yang salah input (hanya selama status masih "Dipinjam").
- * Mengembalikan stok setiap buku, lalu menghapus baris peminjaman
- * (detail_peminjaman ikut terhapus lewat onDelete: Cascade di schema).
+ * Membatalkan peminjaman yang salah input (hanya selama status masih "Dipinjam"
+ * DAN belum ada baris pengembalian sama sekali). Mengembalikan stok setiap buku,
+ * lalu menghapus baris peminjaman (detail_peminjaman ikut terhapus lewat
+ * onDelete: Cascade di schema).
  */
 export async function batalkanPeminjamanAction(id: number): Promise<void> {
+  let blocked = false;
+
   try {
     await db.$transaction(async (tx) => {
       const peminjaman = await tx.peminjaman.findUnique({
         where: { id_peminjaman: id },
-        include: { detail: true },
+        include: { detail: true, pengembalian: true },
       });
-      if (!peminjaman || peminjaman.status !== "Dipinjam") {
+
+      // Defense-in-depth: jangan hanya percaya field `status`. Jika baris
+      // pengembalian sudah ada (data tidak konsisten, atau race condition),
+      // batalkan operasi di sini — bukan mencoba delete dan menabrak FK
+      // constraint `pengembalian_id_peminjaman_fkey`.
+      if (!peminjaman || peminjaman.pengembalian || peminjaman.status !== "Dipinjam") {
+        blocked = true;
         return;
       }
+
       for (const item of peminjaman.detail ?? []) {
         await tx.buku.update({
           where: { id_buku: item.id_buku },
@@ -111,9 +134,14 @@ export async function batalkanPeminjamanAction(id: number): Promise<void> {
       await tx.peminjaman.delete({ where: { id_peminjaman: id } });
     });
   } catch {
-    // Diamkan — halaman list tetap menampilkan data apa adanya.
+    blocked = true;
   }
+
   revalidatePath("/dashboard/peminjaman");
   revalidatePath("/dashboard/buku");
   revalidatePath("/dashboard");
+
+  if (blocked) {
+    redirect("/dashboard/peminjaman?error=batal-gagal");
+  }
 }

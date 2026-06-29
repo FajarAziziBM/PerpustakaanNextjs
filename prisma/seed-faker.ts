@@ -185,11 +185,17 @@ async function main() {
   });
 
   // =========================
-  // PENGEMBALIAN (SEBAGIAN)
+  // PENGEMBALIAN (hanya untuk peminjaman berstatus "Selesai")
   // =========================
+  // PENTING: jangan pakai filter acak independen di sini — peminjaman yang masih
+  // berstatus "Dipinjam" TIDAK BOLEH punya baris pengembalian, karena aplikasi
+  // (lihat src/app/dashboard/peminjaman/actions.ts & pengembalian/actions.ts)
+  // mengasumsikan invariant: status "Selesai" <=> ada baris pengembalian.
+  // Melanggar ini menyebabkan error P2002 (unique constraint) saat user mencoba
+  // memproses pengembalian, dan error P2003 (FK constraint) saat membatalkan.
   await db.pengembalian.createMany({
     data: peminjamanList
-      .filter(() => Math.random() > 0.3)
+      .filter((pinjam) => pinjam.status === "Selesai")
       .map((pinjam) => {
         const terlambat = faker.number.int({ min: 0, max: 10 });
 
