@@ -55,12 +55,11 @@ export async function updateBukuAction(
   redirect("/dashboard/buku");
 }
 
-export async function deleteBukuAction(id: number, currentQuery?: string): Promise<void> {
+export async function deleteBukuAction(id: number, currentSearch?: string): Promise<void> {
   const success = await tryDelete(() => db.buku.delete({ where: { id_buku: id } }));
   revalidatePath("/dashboard/buku");
   if (!success) {
-    const params = new URLSearchParams();
-    if (currentQuery) params.set("q", currentQuery);
+    const params = new URLSearchParams(currentSearch);
     params.set("error", "hapus-gagal");
     redirect(`/dashboard/buku?${params.toString()}`);
   }

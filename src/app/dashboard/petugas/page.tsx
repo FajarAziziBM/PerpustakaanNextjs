@@ -2,18 +2,23 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ErrorBanner } from "@/components/error-banner";
+import { Pagination } from "@/components/pagination";
+import { parsePageParam, getSkipTake } from "@/lib/pagination";
 import { deletePetugasAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; page?: string }>;
 }
 
 export default async function PetugasPage({ searchParams }: PageProps) {
-  const { error } = await searchParams;
-  const items = await db.petugas.findMany({
-    include: { user: true },
-    orderBy: { nama: "asc" },
-  });
+  const { error, page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { skip, take } = getSkipTake(page);
+
+  const [totalItems, items] = await Promise.all([
+    db.petugas.count(),
+    db.petugas.findMany({ include: { user: true }, orderBy: { nama: "asc" }, skip, take }),
+  ]);
 
   return (
     <div>
@@ -24,7 +29,7 @@ export default async function PetugasPage({ searchParams }: PageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Petugas</h1>
-          <p className="mt-1 text-sm text-slate-500">{items.length} akun petugas/admin terdaftar.</p>
+          <p className="mt-1 text-sm text-slate-500">{totalItems} akun petugas/admin terdaftar.</p>
         </div>
         <Link
           href="/dashboard/petugas/baru"
@@ -81,6 +86,8 @@ export default async function PetugasPage({ searchParams }: PageProps) {
           </tbody>
         </table>
       </div>
+
+      <Pagination basePath="/dashboard/petugas" currentPage={page} totalItems={totalItems} />
     </div>
   );
 }

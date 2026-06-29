@@ -2,15 +2,23 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ErrorBanner } from "@/components/error-banner";
+import { Pagination } from "@/components/pagination";
+import { parsePageParam, getSkipTake } from "@/lib/pagination";
 import { deletePenulisAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; page?: string }>;
 }
 
 export default async function PenulisPage({ searchParams }: PageProps) {
-  const { error } = await searchParams;
-  const items = await db.penulis.findMany({ orderBy: { nama_penulis: "asc" } });
+  const { error, page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { skip, take } = getSkipTake(page);
+
+  const [totalItems, items] = await Promise.all([
+    db.penulis.count(),
+    db.penulis.findMany({ orderBy: { nama_penulis: "asc" }, skip, take }),
+  ]);
 
   return (
     <div>
@@ -21,7 +29,7 @@ export default async function PenulisPage({ searchParams }: PageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Penulis</h1>
-          <p className="mt-1 text-sm text-slate-500">{items.length} penulis terdaftar.</p>
+          <p className="mt-1 text-sm text-slate-500">{totalItems} penulis terdaftar.</p>
         </div>
         <Link
           href="/dashboard/penulis/baru"
@@ -68,6 +76,8 @@ export default async function PenulisPage({ searchParams }: PageProps) {
           </tbody>
         </table>
       </div>
+
+      <Pagination basePath="/dashboard/penulis" currentPage={page} totalItems={totalItems} />
     </div>
   );
 }

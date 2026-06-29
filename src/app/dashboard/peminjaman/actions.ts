@@ -106,7 +106,7 @@ export async function createPeminjamanAction(
  * lalu menghapus baris peminjaman (detail_peminjaman ikut terhapus lewat
  * onDelete: Cascade di schema).
  */
-export async function batalkanPeminjamanAction(id: number): Promise<void> {
+export async function batalkanPeminjamanAction(id: number, currentStatus?: string): Promise<void> {
   let blocked = false;
 
   try {
@@ -142,6 +142,9 @@ export async function batalkanPeminjamanAction(id: number): Promise<void> {
   revalidatePath("/dashboard");
 
   if (blocked) {
-    redirect("/dashboard/peminjaman?error=batal-gagal");
+    const params = new URLSearchParams();
+    if (currentStatus) params.set("status", currentStatus);
+    params.set("error", "batal-gagal");
+    redirect(`/dashboard/peminjaman?${params.toString()}`);
   }
 }

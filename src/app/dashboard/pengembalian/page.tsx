@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { Pagination } from "@/components/pagination";
+import { parsePageParam, getSkipTake } from "@/lib/pagination";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -6,24 +8,41 @@ const currency = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
-export default async function PengembalianPage() {
-  const items = await db.pengembalian.findMany({
-    include: {
-      peminjaman: {
-        include: { anggota: true, detail: { include: { buku: true } } },
-      },
-    },
-    orderBy: { tanggal_dikembalikan: "desc" },
-  });
+interface PageProps {
+  searchParams: Promise<{ page?: string }>;
+}
 
-  const totalDenda = items.reduce((sum, item) => sum + Number(item.denda), 0);
+export default async function PengembalianPage({ searchParams }: PageProps) {
+  const { page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { skip, take } = getSkipTake(page);
+
+  const [totalItems, items, dendaAgg] = await Promise.all([
+    db.pengembalian.count(),
+    db.pengembalian.findMany({
+      include: {
+        peminjaman: {
+          include: { anggota: true, detail: { include: { buku: true } } },
+        },
+      },
+      orderBy: { tanggal_dikembalikan: "desc" },
+      skip,
+      take,
+    }),
+    db.pengembalian.aggregate({ _sum: { denda: true } }),
+  ]);
+
+  // Total denda dihitung dari SELURUH data (aggregate), bukan cuma baris yang
+  // sedang ditampilkan di halaman ini — supaya angkanya tetap akurat walau
+  // sudah dipaginasi.
+  const totalDenda = Number(dendaAgg._sum.denda ?? 0);
 
   return (
     <div>
       <div>
         <h1 className="text-lg font-semibold text-slate-900">Riwayat Pengembalian</h1>
         <p className="mt-1 text-sm text-slate-500">
-          {items.length} transaksi · Total denda tercatat: {currency.format(totalDenda)}
+          {totalItems} transaksi · Total denda tercatat: {currency.format(totalDenda)}
         </p>
       </div>
 
@@ -76,6 +95,8 @@ export default async function PengembalianPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination basePath="/dashboard/pengembalian" currentPage={page} totalItems={totalItems} />
     </div>
   );
 }

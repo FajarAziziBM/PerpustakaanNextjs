@@ -2,27 +2,33 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ErrorBanner } from "@/components/error-banner";
+import { Pagination } from "@/components/pagination";
+import { parsePageParam, getSkipTake } from "@/lib/pagination";
 import { deleteAnggotaAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; error?: string; page?: string }>;
 }
 
 export default async function AnggotaPage({ searchParams }: PageProps) {
-  const { q, error } = await searchParams;
+  const { q, error, page: pageParam } = await searchParams;
   const query = q?.trim();
+  const page = parsePageParam(pageParam);
+  const { skip, take } = getSkipTake(page);
 
-  const items = await db.anggota.findMany({
-    where: query
-      ? {
-          OR: [
-            { nama: { contains: query, mode: "insensitive" } },
-            { email: { contains: query, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
-    orderBy: { nama: "asc" },
-  });
+  const where = query
+    ? {
+        OR: [
+          { nama: { contains: query, mode: "insensitive" } },
+          { email: { contains: query, mode: "insensitive" } },
+        ],
+      }
+    : undefined;
+
+  const [totalItems, items] = await Promise.all([
+    db.anggota.count({ where }),
+    db.anggota.findMany({ where, orderBy: { nama: "asc" }, skip, take }),
+  ]);
 
   return (
     <div>
@@ -33,7 +39,7 @@ export default async function AnggotaPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Anggota</h1>
-          <p className="mt-1 text-sm text-slate-500">{items.length} anggota ditemukan.</p>
+          <p className="mt-1 text-sm text-slate-500">{totalItems} anggota ditemukan.</p>
         </div>
         <Link
           href="/dashboard/anggota/baru"
@@ -120,6 +126,13 @@ export default async function AnggotaPage({ searchParams }: PageProps) {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        basePath="/dashboard/anggota"
+        currentPage={page}
+        totalItems={totalItems}
+        preserveParams={{ q: query }}
+      />
     </div>
   );
 }

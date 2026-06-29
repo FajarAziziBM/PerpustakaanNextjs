@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { Pagination } from "@/components/pagination";
+import { parsePageParam, getSkipTake } from "@/lib/pagination";
 import { batalkanPeminjamanAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; page?: string }>;
 }
 
 const STATUS_TABS = [
@@ -14,18 +16,27 @@ const STATUS_TABS = [
 ];
 
 export default async function PeminjamanPage({ searchParams }: PageProps) {
-  const { status, error } = await searchParams;
+  const { status, error, page: pageParam } = await searchParams;
   const activeStatus = status === "Selesai" || status === "semua" ? status : "Dipinjam";
+  const page = parsePageParam(pageParam);
+  const { skip, take } = getSkipTake(page);
 
-  const items = await db.peminjaman.findMany({
-    where: activeStatus === "semua" ? undefined : { status: activeStatus },
-    include: {
-      anggota: true,
-      petugas: true,
-      detail: { include: { buku: true } },
-    },
-    orderBy: { tanggal_pinjam: "desc" },
-  });
+  const where = activeStatus === "semua" ? undefined : { status: activeStatus };
+
+  const [totalItems, items] = await Promise.all([
+    db.peminjaman.count({ where }),
+    db.peminjaman.findMany({
+      where,
+      include: {
+        anggota: true,
+        petugas: true,
+        detail: { include: { buku: true } },
+      },
+      orderBy: { tanggal_pinjam: "desc" },
+      skip,
+      take,
+    }),
+  ]);
 
   const now = new Date();
 
@@ -40,7 +51,7 @@ export default async function PeminjamanPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Peminjaman</h1>
-          <p className="mt-1 text-sm text-slate-500">{items.length} transaksi ditemukan.</p>
+          <p className="mt-1 text-sm text-slate-500">{totalItems} transaksi ditemukan.</p>
         </div>
         <Link
           href="/dashboard/peminjaman/baru"
@@ -120,7 +131,7 @@ export default async function PeminjamanPage({ searchParams }: PageProps) {
                           >
                             Kembalikan
                           </Link>
-                          <form action={batalkanPeminjamanAction.bind(null, item.id_peminjaman)}>
+                          <form action={batalkanPeminjamanAction.bind(null, item.id_peminjaman, activeStatus)}>
                             <ConfirmSubmitButton
                               confirmText="Batalkan peminjaman ini? Stok buku akan dikembalikan."
                             >
@@ -144,6 +155,13 @@ export default async function PeminjamanPage({ searchParams }: PageProps) {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        basePath="/dashboard/peminjaman"
+        currentPage={page}
+        totalItems={totalItems}
+        preserveParams={{ status: activeStatus }}
+      />
     </div>
   );
 }
