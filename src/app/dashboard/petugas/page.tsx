@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ErrorBanner } from "@/components/error-banner";
 import { deletePetugasAction } from "./actions";
 
-export default async function PetugasPage() {
+interface PageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function PetugasPage({ searchParams }: PageProps) {
+  const { error } = await searchParams;
   const items = await db.petugas.findMany({
     include: { user: true },
     orderBy: { nama: "asc" },
@@ -11,6 +17,10 @@ export default async function PetugasPage() {
 
   return (
     <div>
+      {error === "hapus-gagal" && (
+        <ErrorBanner message="Petugas tidak bisa dihapus — kemungkinan masih memiliki histori peminjaman yang ditangani." />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Petugas</h1>

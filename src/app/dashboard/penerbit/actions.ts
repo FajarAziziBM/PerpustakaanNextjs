@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { tryDelete } from "@/lib/delete-helpers";
 import type { ActionState } from "@/lib/action-state";
 import { penerbitSchema } from "@/lib/validators/penerbit";
 
@@ -40,10 +41,9 @@ export async function updatePenerbitAction(
 }
 
 export async function deletePenerbitAction(id: number): Promise<void> {
-  try {
-    await db.penerbit.delete({ where: { id_penerbit: id } });
-  } catch {
-    // Kemungkinan masih direferensikan oleh data Buku.
-  }
+  const success = await tryDelete(() => db.penerbit.delete({ where: { id_penerbit: id } }));
   revalidatePath("/dashboard/penerbit");
+  if (!success) {
+    redirect("/dashboard/penerbit?error=hapus-gagal");
+  }
 }

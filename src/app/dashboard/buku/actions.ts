@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { tryDelete } from "@/lib/delete-helpers";
 import type { ActionState } from "@/lib/action-state";
 import { bukuSchema } from "@/lib/validators/buku";
 
@@ -54,11 +55,13 @@ export async function updateBukuAction(
   redirect("/dashboard/buku");
 }
 
-export async function deleteBukuAction(id: number): Promise<void> {
-  try {
-    await db.buku.delete({ where: { id_buku: id } });
-  } catch {
-    // Kemungkinan masih memiliki histori peminjaman (detail_peminjaman).
-  }
+export async function deleteBukuAction(id: number, currentQuery?: string): Promise<void> {
+  const success = await tryDelete(() => db.buku.delete({ where: { id_buku: id } }));
   revalidatePath("/dashboard/buku");
+  if (!success) {
+    const params = new URLSearchParams();
+    if (currentQuery) params.set("q", currentQuery);
+    params.set("error", "hapus-gagal");
+    redirect(`/dashboard/buku?${params.toString()}`);
+  }
 }

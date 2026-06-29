@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { tryDelete } from "@/lib/delete-helpers";
 import type { ActionState } from "@/lib/action-state";
 import { kategoriSchema } from "@/lib/validators/kategori";
 
@@ -52,11 +53,9 @@ export async function updateKategoriAction(
 }
 
 export async function deleteKategoriAction(id: number): Promise<void> {
-  try {
-    await db.kategori.delete({ where: { id_kategori: id } });
-  } catch {
-    // Kemungkinan masih direferensikan oleh data Buku — sengaja diamkan
-    // agar tidak melempar error tak tertangkap; lihat docs/specification.md §4.
-  }
+  const success = await tryDelete(() => db.kategori.delete({ where: { id_kategori: id } }));
   revalidatePath("/dashboard/kategori");
+  if (!success) {
+    redirect("/dashboard/kategori?error=hapus-gagal");
+  }
 }

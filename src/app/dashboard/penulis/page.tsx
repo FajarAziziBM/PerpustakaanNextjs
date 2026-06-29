@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ErrorBanner } from "@/components/error-banner";
 import { deletePenulisAction } from "./actions";
 
-export default async function PenulisPage() {
+interface PageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function PenulisPage({ searchParams }: PageProps) {
+  const { error } = await searchParams;
   const items = await db.penulis.findMany({ orderBy: { nama_penulis: "asc" } });
 
   return (
     <div>
+      {error === "hapus-gagal" && (
+        <ErrorBanner message="Penulis tidak bisa dihapus — kemungkinan masih dipakai oleh data Buku." />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Penulis</h1>

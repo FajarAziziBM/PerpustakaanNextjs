@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { tryDelete } from "@/lib/delete-helpers";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import type { ActionState } from "@/lib/action-state";
@@ -116,16 +117,17 @@ export async function updatePetugasAction(
 }
 
 export async function deletePetugasAction(id: number): Promise<void> {
-  try {
-    await db.$transaction(async (tx) => {
+  const success = await tryDelete(() =>
+    db.$transaction(async (tx) => {
       // deleteMany dipakai (bukan delete) karena petugas ini mungkin belum
       // pernah punya akun di tabel users sama sekali — deleteMany tidak error
       // walau tidak ada baris yang cocok (count: 0).
       await tx.users.deleteMany({ where: { id_petugas: id } });
       await tx.petugas.delete({ where: { id_petugas: id } });
-    });
-  } catch {
-    // Kemungkinan masih memiliki histori peminjaman yang ditangani petugas ini.
-  }
+    })
+  );
   revalidatePath("/dashboard/petugas");
+  if (!success) {
+    redirect("/dashboard/petugas?error=hapus-gagal");
+  }
 }

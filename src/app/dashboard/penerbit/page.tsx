@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ErrorBanner } from "@/components/error-banner";
 import { deletePenerbitAction } from "./actions";
 
-export default async function PenerbitPage() {
+interface PageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function PenerbitPage({ searchParams }: PageProps) {
+  const { error } = await searchParams;
   const items = await db.penerbit.findMany({ orderBy: { nama_penerbit: "asc" } });
 
   return (
     <div>
+      {error === "hapus-gagal" && (
+        <ErrorBanner message="Penerbit tidak bisa dihapus — kemungkinan masih dipakai oleh data Buku." />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Penerbit</h1>

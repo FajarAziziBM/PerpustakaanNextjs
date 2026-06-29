@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ErrorBanner } from "@/components/error-banner";
 import { deleteBukuAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; error?: string }>;
 }
 
 export default async function BukuPage({ searchParams }: PageProps) {
-  const { q } = await searchParams;
+  const { q, error } = await searchParams;
   const query = q?.trim();
 
   const items = await db.buku.findMany({
@@ -26,6 +27,10 @@ export default async function BukuPage({ searchParams }: PageProps) {
 
   return (
     <div>
+      {error === "hapus-gagal" && (
+        <ErrorBanner message="Buku tidak bisa dihapus — kemungkinan masih memiliki histori peminjaman." />
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Buku</h1>
@@ -101,7 +106,7 @@ export default async function BukuPage({ searchParams }: PageProps) {
                     >
                       Edit
                     </Link>
-                    <form action={deleteBukuAction.bind(null, item.id_buku)}>
+                    <form action={deleteBukuAction.bind(null, item.id_buku, query)}>
                       <ConfirmSubmitButton />
                     </form>
                   </div>

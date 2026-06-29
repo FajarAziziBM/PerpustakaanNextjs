@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { tryDelete } from "@/lib/delete-helpers";
 import type { ActionState } from "@/lib/action-state";
 import { anggotaSchema } from "@/lib/validators/anggota";
 
@@ -52,12 +53,13 @@ export async function updateAnggotaAction(
   redirect("/dashboard/anggota");
 }
 
-export async function deleteAnggotaAction(id: number): Promise<void> {
-  try {
-    await db.anggota.delete({ where: { id_anggota: id } });
-  } catch {
-    // Kemungkinan masih memiliki histori peminjaman — sesuai docs/specification.md,
-    // sebaiknya dinonaktifkan (status) daripada dihapus jika sudah ada transaksi.
-  }
+export async function deleteAnggotaAction(id: number, currentQuery?: string): Promise<void> {
+  const success = await tryDelete(() => db.anggota.delete({ where: { id_anggota: id } }));
   revalidatePath("/dashboard/anggota");
+  if (!success) {
+    const params = new URLSearchParams();
+    if (currentQuery) params.set("q", currentQuery);
+    params.set("error", "hapus-gagal");
+    redirect(`/dashboard/anggota?${params.toString()}`);
+  }
 }

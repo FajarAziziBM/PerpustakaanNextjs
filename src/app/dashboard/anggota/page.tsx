@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ErrorBanner } from "@/components/error-banner";
 import { deleteAnggotaAction } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; error?: string }>;
 }
 
 export default async function AnggotaPage({ searchParams }: PageProps) {
-  const { q } = await searchParams;
+  const { q, error } = await searchParams;
   const query = q?.trim();
 
   const items = await db.anggota.findMany({
@@ -25,6 +26,10 @@ export default async function AnggotaPage({ searchParams }: PageProps) {
 
   return (
     <div>
+      {error === "hapus-gagal" && (
+        <ErrorBanner message="Anggota tidak bisa dihapus — kemungkinan masih memiliki histori peminjaman. Pertimbangkan menonaktifkan status-nya saja." />
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Anggota</h1>
@@ -98,7 +103,7 @@ export default async function AnggotaPage({ searchParams }: PageProps) {
                     >
                       Edit
                     </Link>
-                    <form action={deleteAnggotaAction.bind(null, item.id_anggota)}>
+                    <form action={deleteAnggotaAction.bind(null, item.id_anggota, query)}>
                       <ConfirmSubmitButton />
                     </form>
                   </div>
