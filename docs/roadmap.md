@@ -27,13 +27,14 @@ Mengacu pada prioritas PRD bagian 11:
 **Target keluaran Fase 1:** sistem dapat dipakai untuk operasional harian perpustakaan secara end-to-end (peminjaman → pengembalian → denda → laporan). **Sudah tercapai secara fungsional.**
 
 ## Fase 2 — Penyempurnaan & Fitur Pendukung
-- Import/Export Excel untuk data Buku
-- Audit log (siapa melakukan apa, kapan)
-- Backup & restore database terjadwal
-- Grafik peminjaman pada dashboard
+- [ ] Import/Export Excel untuk data Buku
+- [ ] Audit log (siapa melakukan apa, kapan)
+- [ ] Backup & restore database terjadwal
+- [ ] Grafik peminjaman pada dashboard
 - [x] ~~Pengaturan tarif denda melalui UI~~ — sudah dikerjakan lebih awal di Fase 1 (`/dashboard/pengaturan-denda`), karena jadi prasyarat modul Pengembalian
-- Pencarian & filter lanjutan (multi-kriteria) pada katalog buku
-- Cetak kartu Anggota & cetak bukti transaksi Peminjaman/Pengembalian (PDF)
+- [x] Pencarian & filter lanjutan (multi-kriteria) pada katalog buku — cari judul/ISBN + filter Kategori/Penerbit/Ketersediaan Stok
+- [ ] Cetak kartu Anggota & cetak bukti transaksi Peminjaman/Pengembalian (PDF)
+- [x] **Pagination di semua tabel** (item tambahan di luar rencana awal, jadi prioritas setelah data seed faker mencapai 1000+ baris Buku/Anggota) — `src/lib/pagination.ts` + `src/components/pagination.tsx`, dipakai di 8 modul (Kategori, Penulis, Penerbit, Buku, Anggota, Petugas, Peminjaman, Pengembalian)
 
 ## Fase 3 — Pengembangan Lanjutan (Pasca Versi 1.0)
 - Notifikasi otomatis (email/WhatsApp) untuk jatuh tempo & denda
