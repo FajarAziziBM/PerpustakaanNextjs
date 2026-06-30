@@ -30,7 +30,7 @@ Mengacu pada prioritas PRD bagian 11:
 - [ ] Import/Export Excel untuk data Buku
 - [ ] Audit log (siapa melakukan apa, kapan)
 - [ ] Backup & restore database terjadwal
-- [ ] Grafik peminjaman pada dashboard
+- [x] Grafik peminjaman pada dashboard — bar chart 12 bulan, donut status peminjaman, top kategori buku (SVG murni, Server Component, zero dependency baru)
 - [x] ~~Pengaturan tarif denda melalui UI~~ — sudah dikerjakan lebih awal di Fase 1 (`/dashboard/pengaturan-denda`), karena jadi prasyarat modul Pengembalian
 - [x] Pencarian & filter lanjutan (multi-kriteria) pada katalog buku — cari judul/ISBN + filter Kategori/Penerbit/Ketersediaan Stok
 - [ ] Cetak kartu Anggota & cetak bukti transaksi Peminjaman/Pengembalian (PDF)
