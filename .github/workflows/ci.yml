@@ -1,0 +1,57 @@
+name: CI
+
+# Pemeriksaan dasar (lint + type-check) yang berjalan otomatis pada setiap
+# push/PR ke `main`. Tidak menjalankan `next build` atau test database di sini
+# — itu di luar scope item roadmap ini ("Setup pemeriksaan dasar"); bisa
+# ditambahkan sebagai job terpisah nanti bila dibutuhkan.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Batalkan run lama otomatis kalau ada push baru ke branch/PR yang sama,
+# supaya tidak antre menjalankan commit yang sudah usang.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # `npm ci` menjalankan `postinstall` (`prisma generate`), dan `prisma.config.ts`
+  # sudah punya fallback dummy URL bila DATABASE_URL tidak diset — nilai di sini
+  # sekadar eksplisit & konsisten dengan pendekatan yang sama di Dockerfile
+  # (generate Prisma Client tidak pernah benar-benar membuka koneksi database).
+  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+
+jobs:
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run lint
+
+  typecheck:
+    name: Type Check (tsc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run typecheck

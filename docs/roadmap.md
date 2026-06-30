@@ -7,7 +7,7 @@
 - [x] Dokumentasi awal: `README.md`, `architecture.md`, `specification.md`, `roadmap.md`
 - [x] Setup repository & `podman-compose.yml` (database + skeleton aplikasi)
 - [x] Setup project Next.js + schema Prisma awal
-- [ ] Setup pemeriksaan dasar (lint, type-check otomatis di CI — `npm run typecheck` sudah ada, CI belum)
+- [x] Setup pemeriksaan dasar (lint, type-check otomatis di CI) — ESLint (`eslint-config-next`, flat config) + `npm run typecheck` dijalankan otomatis lewat GitHub Actions (`.github/workflows/ci.yml`) pada setiap push/PR ke `main`
 
 ## Fase 1 — MVP (hampir selesai)
 Mengacu pada prioritas PRD bagian 11:
@@ -22,7 +22,7 @@ Mengacu pada prioritas PRD bagian 11:
 9. [x] Perhitungan Denda Otomatis (+ halaman Pengaturan Denda untuk Admin)
 10. [x] Laporan PDF/Excel: Buku, Anggota, Peminjaman, Pengembalian, Denda
 
-**Sisa pekerjaan sebelum Fase 1 benar-benar tuntas:** filter lanjutan katalog Buku, cetak kartu Anggota, dan cetak bukti transaksi Peminjaman/Pengembalian (disebut di PRD tapi belum diimplementasikan).
+**Sisa pekerjaan sebelum Fase 1 benar-benar tuntas:** cetak kartu Anggota dan cetak bukti transaksi Peminjaman/Pengembalian (disebut di PRD tapi belum diimplementasikan; filter lanjutan katalog Buku sudah selesai duluan, lihat Fase 2).
 
 **Target keluaran Fase 1:** sistem dapat dipakai untuk operasional harian perpustakaan secara end-to-end (peminjaman → pengembalian → denda → laporan). **Sudah tercapai secara fungsional.**
 
@@ -55,9 +55,9 @@ Mengacu pada prioritas PRD bagian 11:
 ## Ringkasan Milestone
 | Fase | Fokus | Status |
 |---|---|---|
-| 0 | Infrastruktur & Dokumentasi | 🚧 Berjalan |
-| 1 | MVP Operasional | ⏳ Belum dimulai |
-| 2 | Penyempurnaan | ⏳ Belum dimulai |
+| 0 | Infrastruktur & Dokumentasi | 🟢 Selesai (5/5) |
+| 1 | MVP Operasional | 🟢 Selesai secara fungsional (tersisa: cetak kartu/bukti) |
+| 2 | Penyempurnaan | 🚧 Berjalan (4/7) |
 | 3 | Pengembangan Lanjutan | ⏳ Belum dimulai |
 
 ## Referensi

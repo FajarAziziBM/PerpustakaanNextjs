@@ -15,9 +15,15 @@ export default async function PeminjamanBaruPage() {
     db.buku.findMany({ orderBy: { judul: "asc" } }),
   ]);
 
+  // Server Component: dieksekusi ulang setiap request (bukan di-memoize seperti
+  // Client Component), jadi `Date.now()` di sini memang sengaja dihitung ulang
+  // tiap kali halaman dibuka — bukan pelanggaran purity yang ditangkap rule ini
+  // untuk komponen client. False-positive yang dikenal untuk Server Component.
+  /* eslint-disable react-hooks/purity */
   const defaultTanggalKembali = formatDateInput(
     new Date(Date.now() + DEFAULT_LOAN_DAYS * 24 * 60 * 60 * 1000)
   );
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className="max-w-lg">
